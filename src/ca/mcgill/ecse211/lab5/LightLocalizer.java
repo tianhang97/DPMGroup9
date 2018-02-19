@@ -13,15 +13,17 @@ import lejos.hardware.sensor.EV3ColorSensor;
 
 public class LightLocalizer {
   private static final double LS_OFFSET = -15.6; //Distance from LS to center of rotation in cm. 
+  private static double wheelRadius;
   private Navigation Navigator;
   private EV3ColorSensor LS;
   private Odometer odo;
   public static double tXminus, tXplus, tYminus, tYplus,deltaTy,deltaTx; //Variables that will record at what theta each lines were crossed at.
   
-  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor) throws OdometerExceptions {
+  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius) throws OdometerExceptions {
     this.Navigator = Navigator;
     this.LS = lightSensor;
     this.odo = Odometer.getOdometer();
+    this.wheelRadius = wheelRadius;
   }
   /**
    * This function localizes the robot using the black lines. Assumes the robot is in the bottom left square. Also, assumes that a full rotation will
@@ -83,15 +85,41 @@ public class LightLocalizer {
    */
   private void stopAtNextBlackLine() {
     Navigator.rotateRobot(10, false, true);
-    Navigator.rotateRobot(135, true, true);
-    while(LS.getColorID() != 13) {
-      //do nothing.
+    while(true) {
+      Navigator.rotateRobot(135, true, true);
+     
+      while(Navigator.isNavigating()) {
+        if(LS.getColorID() == 13) {
+          //When a black line is detected, stop the motors and beep.
+          Navigator.stopMotors();
+          Sound.beep();
+          return;
+        }
+      }
+      
     }
+
     
-    //When a black line is detected, stop the motors and beep.
-    Navigator.stopMotors();
-    Sound.beep();
+  }
+  
+  private double findIdealTrackValue() {
+    int initialTachoLeft = Navigator.getTachoCounts()[0];
+    int initialTachoRight = Navigator.getTachoCounts()[1];
     
+    //Rotate a true 360deg
+    for(int counter=0;counter<5;counter++) stopAtNextBlackLine();
+    
+    int finalTachoLeft = Navigator.getTachoCounts()[0];
+    int finalTachoRight = Navigator.getTachoCounts()[1];
+    
+    int deltaTachoLeft = finalTachoLeft - initialTachoLeft;
+    int deltaTachoRight = finalTachoRight = initialTachoRight;
+    
+    double diffInTachoInRads = Math.toRadians((double) Math.abs(deltaTachoRight - deltaTachoLeft)/2);
+    
+    return wheelRadius*diffInTachoInRads/(2*Math.PI);
+    
+  
   }
   
   

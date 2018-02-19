@@ -105,7 +105,7 @@ public class Lab5 {
   
     //Create ultrasonic and light localizer objects.
     final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator,choiceSelectedIsRisingEdge);
-    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS);
+    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS, WHEEL_RAD);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     

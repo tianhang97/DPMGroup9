@@ -386,7 +386,7 @@ public class Navigation implements UltrasonicController{
    */
   public void rotateRobot(double deltaTheta, boolean instantReturn, boolean rotateClockwise) {
     double absoluteValueOfDeltaTheta = Math.abs(deltaTheta);
-    
+    robotIsNavigating = true;
     int rotateDirection = -1;
     if(rotateClockwise) rotateDirection = 1;
     
@@ -395,6 +395,8 @@ public class Navigation implements UltrasonicController{
     
     leftMotor.rotate(rotateDirection*convertAngle(wheelRadius, track, absoluteValueOfDeltaTheta),true);
     rightMotor.rotate(-rotateDirection*convertAngle(wheelRadius, track, absoluteValueOfDeltaTheta), instantReturn);
+    
+    robotIsNavigating = false;
   }
   
  /**Advances the robot a desired amount of cm.
@@ -410,5 +412,17 @@ public class Navigation implements UltrasonicController{
     leftMotor.rotate(convertDistance(wheelRadius, distanceToTravel), true);
     rightMotor.rotate(convertDistance(wheelRadius, distanceToTravel), instantReturn);
     
+  }
+  /**Function that retrieves the tacho counts from both motors.
+   * 
+   * @return Array with left and right tacho counts. Convention is [0]=left tacho counts. [1] = right tacho counts.
+   */
+  public int[] getTachoCounts(){
+    int[] tachoCounts = new int[2];
+
+    tachoCounts[0] = leftMotor.getTachoCount();
+    tachoCounts[1] = rightMotor.getTachoCount();
+    
+    return tachoCounts;
   }
 }
