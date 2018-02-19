@@ -37,32 +37,35 @@ public class Lab5 {
   private static final EV3LargeRegulatedMotor rightMotor =
       new EV3LargeRegulatedMotor(LocalEV3.get().getPort("B"));
   private static final TextLCD lcd = LocalEV3.get().getTextLCD();
-  private static final EV3ColorSensor LS = 
+  private static final EV3ColorSensor LS_BlackLines = 
       new EV3ColorSensor(LocalEV3.get().getPort("S1"));
+  private static final EV3ColorSensor LS_BlockDetection = 
+      new EV3ColorSensor(LocalEV3.get().getPort("S3"));
   
   static SensorModes usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
   static SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
                                                             // this instance
   static float[] usData = new float[usDistance.sampleSize()]; // usData is the buffer in which data are
-                                                       // returned
+                                                              // returned
+  static float[] lsData = new float[3];
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static final double TRACK = 13.79 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static final double TRACK = 11.7 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int FORWARD_SPEED = 150;
   public static final int ROTATE_SPEED = 100;
   public static final double SQUARESIDE = 30.48;
   public static final int SIZEOFBOARD = 3;
-
+  public static final double LS_TO_CENTER_OFFSET = -14.5;
+  public static final String flagToBeDetected = "BLUE";
  
   public static void main(String[] args) throws OdometerExceptions {
-
     int buttonChoice;
     boolean choiceSelectedIsRisingEdge;
     
     // Odometer related objects
     Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
-    OdometryCorrection odometryCorrection = new OdometryCorrection(LS); // TODO Complete
+    OdometryCorrection odometryCorrection = new OdometryCorrection(LS_BlackLines); // TODO Complete
                                                                       // implementation
     Display odometryDisplay = new Display(lcd); // No need to change
    
@@ -70,7 +73,8 @@ public class Lab5 {
  // Setup Ultrasonic Poller // This thread samples the US and invokes
     UltrasonicPoller usPoller = null; // the selected controller on each cycle
 
-    
+    //Setup LightSensor poller
+    LightSensorPoller lsPoller = null;
     do {
       // clear the display
       lcd.clear();
@@ -89,7 +93,6 @@ public class Lab5 {
     if (buttonChoice == Button.ID_LEFT)  choiceSelectedIsRisingEdge = true;
     else choiceSelectedIsRisingEdge=false;
          
-    
     // Start odometer and display threads and correction Threads.
     Thread odoThread = new Thread(odometer);
     odoThread.start();
@@ -105,11 +108,14 @@ public class Lab5 {
   
     //Create ultrasonic and light localizer objects.
     final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator,choiceSelectedIsRisingEdge);
-    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS, WHEEL_RAD);
+    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     
-    
+    //Create lightsensor poller
+    final FlagDetection FlagDetector = new FlagDetection();
+    lsPoller = new LightSensorPoller(LS_BlockDetection,lsData,FlagDetector);
+    lsPoller.start();
     //Set odometer to xyt = (0,0,0)
     odometer.setXYT(0, 0, 0);
     
@@ -138,10 +144,9 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
-      
-        USLocalizer.Localize();
+        
+        FlagDetector.findFlag(flagToBeDetected);
         Button.waitForAnyPress();
-        LSLocalizer.Localize();
         
         
         

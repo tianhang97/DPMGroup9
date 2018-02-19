@@ -179,7 +179,7 @@ public class Navigation implements UltrasonicController{
    * @return True if the robot is navigating. False if it is not.
    */
   public boolean isNavigating() {
-    return robotIsNavigating;
+    return (leftMotor.isMoving() || rightMotor.isMoving());
     
   }
   

@@ -121,8 +121,5 @@ public class UltrasonicLocalizer{
     Navigator.stopMotors();                     //When the falling edge is found, stop moving.
     odo.setTheta( 43 + odo.getXYT()[2]/2 );         //In theory, the constant is 45 but in practice, it is 43 .
     Sound.beepSequenceUp();
-    
-    //Turn towards 0deg for grading by TA.
-    Navigator.turnTo(0, false, false);
   }
 }
