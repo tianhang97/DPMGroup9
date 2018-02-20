@@ -16,11 +16,9 @@
  */
 package ca.mcgill.ecse211.lab5;
 
-import org.jfree.util.Rotation;
 import ca.mcgill.ecse211.lab5.UltrasonicPoller;
 import ca.mcgill.ecse211.odometer.*;
 import lejos.hardware.Button;
-import lejos.hardware.Sound;
 import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.TextLCD;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
@@ -51,7 +49,7 @@ public class Lab5 {
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static final double TRACK = 11.7 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static final double TRACK = 11.685 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int FORWARD_SPEED = 150;
   public static final int ROTATE_SPEED = 100;
   public static final double SQUARESIDE = 30.48;
@@ -59,6 +57,11 @@ public class Lab5 {
   public static final double LS_TO_CENTER_OFFSET = -14.5;
   public static final String flagToBeDetected = "BLUE";
  
+  public static final double[] searchZone = {3,3,6,7}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
+  public static final int startCorner = 0;
+  public static final int blockColor = 2; // 1=red, 2= blue, 3=yellow, 4=white
+      
+  
   public static void main(String[] args) throws OdometerExceptions {
     int buttonChoice;
     boolean choiceSelectedIsRisingEdge;
@@ -108,12 +111,12 @@ public class Lab5 {
   
     //Create ultrasonic and light localizer objects.
     final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator,choiceSelectedIsRisingEdge);
-    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET);
+    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     
     //Create lightsensor poller
-    final FlagDetection FlagDetector = new FlagDetection();
+    final FlagDetection FlagDetector = new FlagDetection(Navigator);
     lsPoller = new LightSensorPoller(LS_BlockDetection,lsData,FlagDetector);
     lsPoller.start();
     //Set odometer to xyt = (0,0,0)
@@ -144,8 +147,12 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
-        
-        FlagDetector.findFlag(flagToBeDetected);
+       
+        USLocalizer.Localize();
+        LSLocalizer.Localize();
+        Button.waitForAnyPress();
+        FlagDetector.goToSearchZone(searchZone);
+        FlagDetector.exitSearchZone(searchZone);
         Button.waitForAnyPress();
         
         

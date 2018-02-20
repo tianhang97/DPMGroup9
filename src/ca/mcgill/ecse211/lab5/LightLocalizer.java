@@ -17,14 +17,16 @@ public class LightLocalizer {
   private Navigation Navigator;
   private EV3ColorSensor LS;
   private Odometer odo;
+  private static double SQUARESIDE;
   public static double tXminus, tXplus, tYminus, tYplus,deltaTy,deltaTx; //Variables that will record at what theta each lines were crossed at.
   
-  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET) throws OdometerExceptions {
+  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE) throws OdometerExceptions {
     this.Navigator = Navigator;
     this.LS = lightSensor;
     this.odo = Odometer.getOdometer();
     this.wheelRadius = wheelRadius;
     this.LS_OFFSET = LS_TO_CENTER_OFFSET;
+    this.SQUARESIDE = SQUARESIZE;
   }
   /**
    * This function localizes the robot using the black lines. Assumes the robot is in the bottom left square. Also, assumes that a full rotation will
@@ -80,6 +82,8 @@ public class LightLocalizer {
     //When this is done, travel to the origin and turn to Theta=0.
     Navigator.travelTo(0, 0);
     Navigator.turnTo(0, false, false);
+    
+    odo.setXYT(SQUARESIDE, SQUARESIDE, odo.getXYT()[2]);
   }
   /**
    * This function will rotate the robot clockwise and will stop the robot when a black line is met. 

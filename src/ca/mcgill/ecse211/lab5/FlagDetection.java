@@ -3,6 +3,8 @@ package ca.mcgill.ecse211.lab5;
 import lejos.hardware.Sound;
 
 public class FlagDetection implements LightSensorController{
+  private static Navigation Navigator;
+  
   public static float R;
   public static float G;
   public static float B;
@@ -11,6 +13,9 @@ public class FlagDetection implements LightSensorController{
   private static float minG = (float) 1;
   private static float minB = (float) 3;
   
+  public FlagDetection(Navigation Navigator) {
+    this.Navigator = Navigator;
+  }
   public void processLSColorData(float[] colorValues) {
     R = 1000*colorValues[0];
     G = 1000*colorValues[1];
@@ -36,4 +41,11 @@ public class FlagDetection implements LightSensorController{
     }
   }
   
+  public void goToSearchZone(double[] searchZone) {
+    Navigator.travelTo(searchZone[0], searchZone[1]);
+  }
+  
+  public void exitSearchZone (double[] searchZone) {
+    Navigator.travelTo(searchZone[2], searchZone[3]);
+  }
 }
