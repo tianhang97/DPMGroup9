@@ -67,6 +67,7 @@ public class Display implements Runnable {
       lcd.drawString("G: "+ FlagDetection.G+"    ", 0, 4);
       lcd.drawString("B: "+ FlagDetection.B+"     ", 0, 5);
       lcd.drawString("Distance:" + Navigation.distance+"      ", 0, 6);
+      lcd.drawString("Track:" + Navigation.track+"      ", 0, 7);
       
       // this ensures that the data is updated only once every period
       updateEnd = System.currentTimeMillis();

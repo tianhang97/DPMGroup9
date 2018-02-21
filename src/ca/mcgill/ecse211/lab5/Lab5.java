@@ -49,7 +49,7 @@ public class Lab5 {
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static final double TRACK = 11.685 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static double TRACK = 14 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int FORWARD_SPEED = 150;
   public static final int ROTATE_SPEED = 100;
   public static final double SQUARESIDE = 30.48;
@@ -67,7 +67,7 @@ public class Lab5 {
     boolean choiceSelectedIsRisingEdge;
     
     // Odometer related objects
-    Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
+    final Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
     OdometryCorrection odometryCorrection = new OdometryCorrection(LS_BlackLines); // TODO Complete
                                                                       // implementation
     Display odometryDisplay = new Display(lcd); // No need to change
@@ -150,12 +150,6 @@ public class Lab5 {
        
         USLocalizer.Localize();
         LSLocalizer.Localize();
-        Button.waitForAnyPress();
-        FlagDetector.goToSearchZone(searchZone);
-        FlagDetector.exitSearchZone(searchZone);
-        Button.waitForAnyPress();
-        
-        
         
       } 
     }).start();

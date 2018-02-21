@@ -95,7 +95,6 @@ public class UltrasonicLocalizer{
       
     }
     
-    Sound.buzz();
     //Check to see when there is a rising edge.
     while(Navigator.readUSDistance() > d-k) {
       

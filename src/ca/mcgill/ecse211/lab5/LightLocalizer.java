@@ -49,6 +49,11 @@ public class LightLocalizer {
     
     //With the robot's position guaranteed to produce a 4 rotation with the LS crossing 4 lines, we can continue.
     //Now we fully rotate 360 and record when each of the black lines were crossed.
+    Navigator.updateTrack(findIdealTrackValue());
+    
+    Navigator.rotateRobot(-20, false, false);
+    odo.setTheta(0);
+    
     stopAtNextBlackLine();
     tXminus = odo.getXYT()[2];
     
@@ -107,17 +112,19 @@ public class LightLocalizer {
   }
   
   public double findIdealTrackValue() {
+    stopAtNextBlackLine();
+    
     int initialTachoLeft = Navigator.getTachoCounts()[0];
     int initialTachoRight = Navigator.getTachoCounts()[1];
     
     //Rotate a true 360deg
-    for(int counter=0;counter<5;counter++) stopAtNextBlackLine();
+    for(int counter=0;counter<4;counter++) stopAtNextBlackLine();
     
     int finalTachoLeft = Navigator.getTachoCounts()[0];
     int finalTachoRight = Navigator.getTachoCounts()[1];
     
     int deltaTachoLeft = finalTachoLeft - initialTachoLeft;
-    int deltaTachoRight = finalTachoRight = initialTachoRight;
+    int deltaTachoRight = finalTachoRight - initialTachoRight;
     
     double diffInTachoInRads = Math.toRadians((double) Math.abs(deltaTachoRight - deltaTachoLeft));
     

@@ -24,7 +24,7 @@ public class Navigation implements UltrasonicController{
   private EV3LargeRegulatedMotor leftMotor;
   private EV3LargeRegulatedMotor rightMotor;
   private double wheelRadius;
-  private double track;
+  public static double track;
   private int FORWARDSPEED;
   private int ROTATIONSPEED;
   public static double wantedTheta;
@@ -424,5 +424,13 @@ public class Navigation implements UltrasonicController{
     tachoCounts[1] = rightMotor.getTachoCount();
     
     return tachoCounts;
+  }
+
+  public void updateTrack(double idealTrack) {
+    this.track = idealTrack;
+    Odometer.TRACK = idealTrack;
+    Odometer.ROTATION_RADIUS = idealTrack/2;
+    Lab5.TRACK = idealTrack;
+    
   }
 }
