@@ -6,12 +6,14 @@
 package ca.mcgill.ecse211.lab5;
 
 import ca.mcgill.ecse211.odometer.Odometer;
+import ca.mcgill.ecse211.odometer.OdometryCorrection;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
 import lejos.hardware.Button;
 import lejos.hardware.Sound;
 import lejos.hardware.sensor.EV3ColorSensor;
 
 public class LightLocalizer {
+  private static final double TRACK_ERROR = 0.108;
   private static double LS_OFFSET; //Distance from LS to center of rotation in cm. 
   private static double wheelRadius;
   private Navigation Navigator;
@@ -19,6 +21,7 @@ public class LightLocalizer {
   private Odometer odo;
   private static double SQUARESIDE;
   public static double tXminus, tXplus, tYminus, tYplus,deltaTy,deltaTx; //Variables that will record at what theta each lines were crossed at.
+  
   
   public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE) throws OdometerExceptions {
     this.Navigator = Navigator;
@@ -34,24 +37,11 @@ public class LightLocalizer {
    */
   
   public void Localize() {
-    //Aim for the origin of the platform
-    Navigator.turnTo(45, false, false);
-    
-    //Advance until light sensor sees a black line. Advancing 1m should do the trick.
-    Navigator.advanceRobot(100, true);
-    while(LS.getColorID() != 13) {
-      //Do nothing
-    }
-    Sound.beep();
-    
-    //Once the light sensor is near the origin (hopefully), backup until the center of origin is on the origin
-    Navigator.advanceRobot(1.5*LS_OFFSET, false);
+    OdometryCorrection.startCorrection = false;
     
     //With the robot's position guaranteed to produce a 4 rotation with the LS crossing 4 lines, we can continue.
     //Now we fully rotate 360 and record when each of the black lines were crossed.
-    Navigator.updateTrack(findIdealTrackValue());
-    
-    Navigator.rotateRobot(-20, false, false);
+    Navigator.turnTo(45, false, false);
     odo.setTheta(0);
     
     stopAtNextBlackLine();
@@ -82,13 +72,15 @@ public class LightLocalizer {
     odo.setX(-Math.abs(LS_OFFSET * Math.cos(deltaTy*Math.PI/360)));
     odo.setY(-Math.abs(LS_OFFSET * Math.cos(deltaTx*Math.PI/360)));
     
-    odo.setTheta(273+deltaTy/2);      //Theoretically 270. In practice it is 274 .          
+    odo.setTheta(273.5+deltaTy/2);      //Theoretically 270. In practice it is 274 .          
     
     //When this is done, travel to the origin and turn to Theta=0.
     Navigator.travelTo(0, 0);
     Navigator.turnTo(0, false, false);
     
     odo.setXYT(SQUARESIDE, SQUARESIDE, odo.getXYT()[2]);
+    OdometryCorrection.startCorrection = true;
+    OdometryCorrection.resetGyroSampler();
   }
   /**
    * This function will rotate the robot clockwise and will stop the robot when a black line is met. 
@@ -96,8 +88,8 @@ public class LightLocalizer {
   private void stopAtNextBlackLine() {
     Navigator.rotateRobot(10, false, true);
     while(true) {
-      Navigator.rotateRobot(135, true, true);
-      while(Navigator.isNavigating()) {
+      Navigator.rotateRobot(360, true, true);
+      while(Navigation.isRotating()) {
         if(LS.getColorID() == 13) {
           //When a black line is detected, stop the motors and beep.
           Navigator.stopMotors();
@@ -128,7 +120,7 @@ public class LightLocalizer {
     
     double diffInTachoInRads = Math.toRadians((double) Math.abs(deltaTachoRight - deltaTachoLeft));
     
-    return wheelRadius*diffInTachoInRads/(2*Math.PI);
+    return wheelRadius*diffInTachoInRads/(2*Math.PI)+ TRACK_ERROR;
     
   
   }

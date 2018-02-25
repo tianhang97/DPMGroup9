@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import ca.mcgill.ecse211.odometer.Odometer;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
 import ca.mcgill.ecse211.odometer.OdometryCorrection;
+import lejos.hardware.Button;
 import lejos.hardware.lcd.TextLCD;
 
 /**
@@ -65,9 +66,10 @@ public class Display implements Runnable {
       //Debugging only
       lcd.drawString("R: "+ FlagDetection.R+"       ", 0, 3);
       lcd.drawString("G: "+ FlagDetection.G+"    ", 0, 4);
-      lcd.drawString("B: "+ FlagDetection.B+"     ", 0, 5);
+      lcd.drawString("GyroT: "+ OdometryCorrection.gyroSample[0]+"     ", 0, 5);
       lcd.drawString("Distance:" + Navigation.distance+"      ", 0, 6);
-      lcd.drawString("Track:" + Navigation.track+"      ", 0, 7);
+      lcd.drawString("color:" + FlagDetection.colorDetected+"         ", 0, 7);
+   
       
       // this ensures that the data is updated only once every period
       updateEnd = System.currentTimeMillis();

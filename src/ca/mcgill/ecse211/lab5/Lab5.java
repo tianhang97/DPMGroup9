@@ -1,18 +1,14 @@
 /**This class contains the main function.
  * 
- * January 29th, 2018
+ * February 25th, 2018
  * McGill University, Montreal, Canada
  * @author Shawn Vosburg
  * @author TianHang Wu
+ * @author Laurent Poulin
  * 
  * 
- * This class contains the main method. It asks the user what type of test it wants to perform on
- * the EV3 autonomous robot. There is:
- *      1. Float the motors. This test unblocks the motors and allows to see if the odometer on the lcd display works properly.
- *      2. Uncorrected square driving. Tests the intrinsic accuracy of the odometer.
- *      3. Track Test. By placing the robot exactly on a corner, it can calculate the effective TRACK value
- *                      needed for perfect 90deg turns.
- *      4. Corrected Square Driving. Corrects the odometer so the origin is placed at the bottom left intersection. 
+ * This class contains the main method. It demands the user to input a color block to search for and goes to search for it.
+ *     
  */
 package ca.mcgill.ecse211.lab5;
 
@@ -23,6 +19,7 @@ import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.TextLCD;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.sensor.EV3ColorSensor;
+import lejos.hardware.sensor.EV3GyroSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.hardware.sensor.SensorModes;
 import lejos.robotics.SampleProvider;
@@ -39,6 +36,8 @@ public class Lab5 {
       new EV3ColorSensor(LocalEV3.get().getPort("S1"));
   private static final EV3ColorSensor LS_BlockDetection = 
       new EV3ColorSensor(LocalEV3.get().getPort("S3"));
+  private static final EV3GyroSensor GyroSensor = 
+      new EV3GyroSensor(LocalEV3.get().getPort("S4"));
   
   static SensorModes usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
   static SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
@@ -49,52 +48,84 @@ public class Lab5 {
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static double TRACK = 14 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static double TRACK = 12.3 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int FORWARD_SPEED = 150;
-  public static final int ROTATE_SPEED = 100;
+  public static final int ROTATE_SPEED = 120;
   public static final double SQUARESIDE = 30.48;
   public static final int SIZEOFBOARD = 3;
-  public static final double LS_TO_CENTER_OFFSET = -14.5;
-  public static final String flagToBeDetected = "BLUE";
- 
+  public static final double LS_TO_CENTER_OFFSET = -14.3;
+   
   public static final double[] searchZone = {3,3,6,7}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
   public static final int startCorner = 0;
-  public static final int blockColor = 2; // 1=red, 2= blue, 3=yellow, 4=white
+  public static int blockColor = 0; // 1=red, 2= blue, 3=yellow, 4=white
       
   
   public static void main(String[] args) throws OdometerExceptions {
     int buttonChoice;
-    boolean choiceSelectedIsRisingEdge;
-    
-    // Odometer related objects
-    final Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
-    OdometryCorrection odometryCorrection = new OdometryCorrection(LS_BlackLines); // TODO Complete
-                                                                      // implementation
-    Display odometryDisplay = new Display(lcd); // No need to change
-   
-    
- // Setup Ultrasonic Poller // This thread samples the US and invokes
+      
+    // Setup Ultrasonic Poller // This thread samples the US and invokes
     UltrasonicPoller usPoller = null; // the selected controller on each cycle
 
     //Setup LightSensor poller
     LightSensorPoller lsPoller = null;
+    
+    //Asking the user for what color they want to search for
     do {
       // clear the display
       lcd.clear();
 
-      // ask the user whether the motors should drive in a square or float
+      // ask the user what color they want.
       lcd.drawString("< Left | Right >", 0, 0);
       lcd.drawString("       |        ", 0, 1);
-      lcd.drawString("Rising |Falling ", 0, 2);
-      lcd.drawString(" Edge  |  Edge  ", 0, 3);
+      lcd.drawString("  RED  | YELLOW ", 0, 2);
+      lcd.drawString(" BLUE  |  WHITE ", 0, 3);
       lcd.drawString("       |        ", 0, 4);
 
       buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
     } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+    
+    if( buttonChoice == Button.ID_LEFT) {
+      do {
+        // clear the display
+        lcd.clear();
 
-    //Select which routine to find theta.
-    if (buttonChoice == Button.ID_LEFT)  choiceSelectedIsRisingEdge = true;
-    else choiceSelectedIsRisingEdge=false;
+        // ask the user what color they want.
+        lcd.drawString("< Left | Right >", 0, 0);
+        lcd.drawString("       |        ", 0, 1);
+        lcd.drawString("  RED  |  BLUE  ", 0, 2);
+        lcd.drawString("       |        ", 0, 3);
+        lcd.drawString("       |        ", 0, 4);
+
+        buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+      } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+      if(buttonChoice == Button.ID_LEFT) blockColor = 0;
+      else blockColor = 1;
+    }
+    
+    else {
+      do {
+        // clear the display
+        lcd.clear();
+
+        // ask the user what color they want.
+        lcd.drawString("< Left | Right >", 0, 0);
+        lcd.drawString("       |        ", 0, 1);
+        lcd.drawString("YELLOW | WHITE  ", 0, 2);
+        lcd.drawString("       |        ", 0, 3);
+        lcd.drawString("       |        ", 0, 4);
+
+        buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+      } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+      if(buttonChoice == Button.ID_LEFT) blockColor = 2;
+      else blockColor = 3;
+    }
+    
+    // Odometer related objects
+    final Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
+    OdometryCorrection odometryCorrection = new OdometryCorrection(LS_BlackLines,LS_TO_CENTER_OFFSET,GyroSensor); // TODO Complete
+                                                                      // implementation 
+    Display odometryDisplay = new Display(lcd); // No need to change
+    
          
     // Start odometer and display threads and correction Threads.
     Thread odoThread = new Thread(odometer);
@@ -107,20 +138,21 @@ public class Lab5 {
     
     //Odometer Correction
     Thread odoCorrectionThread = new Thread(odometryCorrection);
-    //odoCorrectionThread.start();
-  
+    odoCorrectionThread.start();
+
+    
     //Create ultrasonic and light localizer objects.
-    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator,choiceSelectedIsRisingEdge);
+    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator, false);
     final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     
     //Create lightsensor poller
-    final FlagDetection FlagDetector = new FlagDetection(Navigator);
+    final FlagDetection FlagDetector = new FlagDetection(Navigator, SQUARESIDE, blockColor);
     lsPoller = new LightSensorPoller(LS_BlockDetection,lsData,FlagDetector);
     lsPoller.start();
     //Set odometer to xyt = (0,0,0)
-    odometer.setXYT(0, 0, 0);
+    odometer.setXYT(SQUARESIDE, SQUARESIDE, 0);
     
     
     
@@ -147,9 +179,8 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
-       
-        USLocalizer.Localize();
-        LSLocalizer.Localize();
+        
+        Navigator.rotateRobot(360, true, true);
         
       } 
     }).start();
