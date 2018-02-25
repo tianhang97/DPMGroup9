@@ -39,7 +39,7 @@ public class Lab5 {
   private static final EV3GyroSensor GyroSensor = 
       new EV3GyroSensor(LocalEV3.get().getPort("S4"));
   
-  static SensorModes usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
+  static EV3UltrasonicSensor usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
   static SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
                                                             // this instance
   static float[] usData = new float[usDistance.sampleSize()]; // usData is the buffer in which data are
@@ -48,7 +48,7 @@ public class Lab5 {
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static double TRACK = 12.3 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static double TRACK = 11.95 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int FORWARD_SPEED = 150;
   public static final int ROTATE_SPEED = 120;
   public static final double SQUARESIDE = 30.48;

@@ -36,7 +36,7 @@ public class Navigation implements UltrasonicController{
   public static int distance = 255;
   private static double[][] centerOfBoard;
   private int[] last5Distances = new int[5];
-  public static boolean navigationCorrectionEnable = false;
+  public static boolean navigationCorrectionEnable = true;
   public static boolean odometerCorrected;
   private static boolean robotIsRotating = false;
  
@@ -488,7 +488,7 @@ public class Navigation implements UltrasonicController{
     
     for(int i = 0;FlagDetection.colorDetected.equals("NO COLOR") && i < 3 ; i++) {
       advanceRobot(1,false);
-      FlagDetection.findColorOfBlock();
+      FlagDetection.findColorOfBlock(false);
     }
     stopMotors();
     

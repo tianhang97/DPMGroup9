@@ -1,11 +1,9 @@
 /** OdometryCorrection.java
  * This class corrects the odometer and ensures that the effective origin is located at the bottom left intersection.
- * It assumes that the robot performs perfect 90deg turns (Which is the whole purpose of the TEST TRACK state).
- * 
+ * It assumes that the robot performs perfect 90deg turns.
  * @author Shawn Vosburg
- * @author Tianhang Wu
  * 
- * Date: January 29th, 2018
+ * Date: February 25th, 2018
  * McGill University, Montreal, Canada.
  */
 package ca.mcgill.ecse211.odometer;
@@ -72,8 +70,8 @@ public class OdometryCorrection implements Runnable {
     while (true) {
       if(Navigation.isNavigating() && startCorrection) {
         correctionStart = System.currentTimeMillis();
-        
         GS_Sampler.fetchSample(gyroSample, 0);
+        
         //A LINE GOT DETECTED
         if(LS.getColorID() == 13) {
           Sound.beep();
@@ -127,6 +125,10 @@ public class OdometryCorrection implements Runnable {
     }
   }
   
+  /**Resets the GyroSensor to 0deg. 
+   * ROBOT MUST BE STILL DURING THIS OPERATION.
+   * 
+   */
   public static void resetGyroSampler() {
     GyroSensor.reset();
     GS_Sampler = GyroSensor.getAngleMode();
