@@ -474,9 +474,9 @@ public class Navigation implements UltrasonicController{
     nextY = getNextDestinationPerimeterSearch(searchDirection, presentX, presentY)[1];
     travelTo(nextX, nextY);
     
+    //turns to check if a block is present only if in front of the zone.
     turnTo(90 * (searchDirection+1),true,false);
-    
-    if(distance < maxDistanceToCheck) return true;
+    for(int counter = 0; counter < 20 ; counter++)   if(distance < maxDistanceToCheck) return true;
     turnTo(90*searchDirection, true, false);
     return false;
   }
@@ -542,10 +542,19 @@ public class Navigation implements UltrasonicController{
     return newCoords;
   }
   
+  /**Returns the coordinate offset at which the robot will navigate when searching for block. Usually around ~12/30.48.
+   * 
+   * @return Constant at which the robot moves to check if block is present. 
+   */
   public double getContstantFlagCheckingDistance() {
     return CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
   }
   
+  /**Updates the motors speeds during navigation.
+   * 
+   * @param FORWARD_SPEED   Angular speed in deg/s for forward motion.
+   * @param ROTATE_SPEED    Angular speed in deg/s for rotational motion
+   */
   public void setForwardAndRotatingSpeed(int FORWARD_SPEED, int ROTATE_SPEED) {
     this.ROTATIONSPEED = ROTATE_SPEED;
     this.FORWARDSPEED = FORWARD_SPEED;

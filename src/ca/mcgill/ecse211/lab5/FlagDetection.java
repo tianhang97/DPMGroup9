@@ -28,6 +28,7 @@ public class FlagDetection implements LightSensorController{
   private static final double TOLERANCE_ON_BLOCK_DETECTION = 1;
   private static int startCorner;
   private static double[] searchLines, searchZone;
+  public static boolean SEARCHINGFORFLAGS = true;
   
   public static float R;
   public static float G;
@@ -93,12 +94,13 @@ public class FlagDetection implements LightSensorController{
     int maxDistanceToCheckY = (int) ((deltaY+TOLERANCE_ON_BLOCK_DETECTION) * SQUARESIDE)/2;
    
     
-    for( searchDirection = 0; searchDirection < 4 && !correctFlagFound; searchDirection++) {
+    for( searchDirection = 0; searchDirection < 4 && !correctFlagFound && SEARCHINGFORFLAGS; searchDirection++) {
       //Travelling in...
       //... +ve y-direction.
       if(searchDirection == 0) {
         Navigator.travelTo(searchLines[0], searchLines[1]);
-        while(odo.getXYT()[1] < (searchZone[3]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+        Navigator.travelTo(searchLines[0], searchZone[1]);
+        while(odo.getXYT()[1] < (searchZone[3]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE && SEARCHINGFORFLAGS) {
           perimeterSearchRountine(searchDirection,maxDistanceToCheckX);
           //Stop searching if the right color is detected.
           if(correctFlagFound) break;
@@ -108,7 +110,8 @@ public class FlagDetection implements LightSensorController{
       //... +ve x-direction
       else if(searchDirection == 1) {
         Navigator.travelTo(searchLines[0], searchLines[3]);
-        while(odo.getXYT()[0] < (searchZone[2]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+        Navigator.travelTo(searchZone[0], searchLines[3]);
+        while(odo.getXYT()[0] < (searchZone[2]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE && SEARCHINGFORFLAGS) {
           perimeterSearchRountine(searchDirection,maxDistanceToCheckY);
           
           //Stop searching if the right color is detected.
@@ -119,7 +122,8 @@ public class FlagDetection implements LightSensorController{
       //... -ve y-direction
       else if(searchDirection == 2) {
         Navigator.travelTo(searchLines[2], searchLines[3]);
-        while(odo.getXYT()[1] > (searchZone[1] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+        Navigator.travelTo(searchLines[2], searchZone[3]);
+        while(odo.getXYT()[1] > (searchZone[1] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE && SEARCHINGFORFLAGS) {
           perimeterSearchRountine(searchDirection,maxDistanceToCheckX);
           
           //Stop searching if the right color is detected.
@@ -130,7 +134,8 @@ public class FlagDetection implements LightSensorController{
       //... -ve x-direction
       else {
         Navigator.travelTo(searchLines[2], searchLines[1]);
-        while(odo.getXYT()[0] > (searchZone[0] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+        Navigator.travelTo(searchZone[2], searchLines[1]);
+        while(odo.getXYT()[0] > (searchZone[0] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE && SEARCHINGFORFLAGS) {
           perimeterSearchRountine(searchDirection,maxDistanceToCheckY);
           
           //Stop searching if the right color is detected.
@@ -243,14 +248,15 @@ public class FlagDetection implements LightSensorController{
     
   }
   
-  /**Travels to the beginning of the searchZone.
-   * 
+  /**Travels to the beginning of the searchZone. Makes sure that the robot does not enter the searchZone but navigates around it.
+   * Corrects direction while travelling
    * @param searchZone  Array of coords of the search zone. [LLx,LLy,URx,URy]
    */
   public void goToSearchZone(double[] searchZone, int startCorner) {
     if(startCorner == 1 || startCorner == 2)    Navigator.travelTo(searchLines[2], searchLines[1]);
-    
     Navigator.travelTo(searchZone[0], searchZone[1]);
+    //Must call it twice if on-the-fly correction isn't enabled.
+    if(!Navigator.navigationCorrectionEnable) Navigator.travelTo(searchZone[0], searchZone[1]);
     Sound.beep();
   }
   
@@ -276,6 +282,8 @@ public class FlagDetection implements LightSensorController{
     }
     
     Navigator.travelTo(searchZone[2], searchZone[3]);
+    //If correction on-the-fly is disabled, must recall the function to improve accuracy.
+    if(!Navigation.navigationCorrectionEnable) Navigator.travelTo(searchZone[2], searchZone[3]);
   }
   
   /**This function beeps the correct number of times when a block is detected.

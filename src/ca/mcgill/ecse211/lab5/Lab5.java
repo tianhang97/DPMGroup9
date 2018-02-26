@@ -47,16 +47,17 @@ public class Lab5 {
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
-  public static double TRACK = 11.95 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
+  public static double TRACK = 12.05 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
   public static final int LOCALIZATION_SPEED = 120;
   public static final int FORWARD_SPEED = 300;
-  public static final int ROTATE_SPEED = 100;
+  public static final int ROTATE_SPEED = 150;
   public static final double SQUARESIDE = 30.48;
   public static final int SIZEOFBOARD = 7;
   public static final double LS_TO_CENTER_OFFSET = -14.3;
+  public static boolean isInFieldTestMode = true;
    
   public static final double[] searchZone = {2,2,5,5}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
-  public static final int startCorner = 2;
+  public static final int startCorner = 0;
   public static int blockColor = 0; // 1=red, 2= blue, 3=yellow, 4=white
 
   
@@ -83,7 +84,7 @@ public class Lab5 {
     //Setup LightSensor poller
     LightSensorPoller lsPoller = null;
     
-    //Asking the user for what color they want to search for
+    //Asking the user for what test they want to run
     do {
       // clear the display
       lcd.clear();
@@ -91,50 +92,67 @@ public class Lab5 {
       // ask the user what color they want.
       lcd.drawString("< Left | Right >", 0, 0);
       lcd.drawString("       |        ", 0, 1);
-      lcd.drawString("  RED  | YELLOW ", 0, 2);
-      lcd.drawString(" BLUE  |  WHITE ", 0, 3);
+      lcd.drawString(" COLOR |  FIELD ", 0, 2);
+      lcd.drawString("CLASS. |  TEST  ", 0, 3);
       lcd.drawString("       |        ", 0, 4);
 
       buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
     } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
-    
-    if( buttonChoice == Button.ID_LEFT) {
-      do {
-        // clear the display
-        lcd.clear();
-
-        // ask the user what color they want.
-        lcd.drawString("< Left | Right >", 0, 0);
-        lcd.drawString("       |        ", 0, 1);
-        lcd.drawString("  RED  |  BLUE  ", 0, 2);
-        lcd.drawString("       |        ", 0, 3);
-        lcd.drawString("       |        ", 0, 4);
-
-        buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
-      } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
-      if(buttonChoice == Button.ID_LEFT) blockColor = 0;
-      else blockColor = 1;
-    }
-    
-    else {
-      do {
-        // clear the display
-        lcd.clear();
-
-        // ask the user what color they want.
-        lcd.drawString("< Left | Right >", 0, 0);
-        lcd.drawString("       |        ", 0, 1);
-        lcd.drawString("YELLOW | WHITE  ", 0, 2);
-        lcd.drawString("       |        ", 0, 3);
-        lcd.drawString("       |        ", 0, 4);
-
-        buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
-      } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
-      if(buttonChoice == Button.ID_LEFT) blockColor = 2;
-      else blockColor = 3;
-    }
     lcd.clear();
-    
+    if(buttonChoice == Button.ID_LEFT)    isInFieldTestMode = false;
+    else {
+      //Asking the user for what color they want to search for
+      do {
+        // clear the display
+        lcd.clear();
+  
+        // ask the user what color they want.
+        lcd.drawString("< Left | Right >", 0, 0);
+        lcd.drawString("       |        ", 0, 1);
+        lcd.drawString("  RED  | YELLOW ", 0, 2);
+        lcd.drawString(" BLUE  |  WHITE ", 0, 3);
+        lcd.drawString("       |        ", 0, 4);
+  
+        buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+      } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+      
+      if( buttonChoice == Button.ID_LEFT) {
+        do {
+          // clear the display
+          lcd.clear();
+  
+          // ask the user what color they want.
+          lcd.drawString("< Left | Right >", 0, 0);
+          lcd.drawString("       |        ", 0, 1);
+          lcd.drawString("  RED  |  BLUE  ", 0, 2);
+          lcd.drawString("       |        ", 0, 3);
+          lcd.drawString("       |        ", 0, 4);
+  
+          buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+        } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+        if(buttonChoice == Button.ID_LEFT) blockColor = 0;
+        else blockColor = 1;
+      }
+      
+      else {
+        do {
+          // clear the display
+          lcd.clear();
+  
+          // ask the user what color they want.
+          lcd.drawString("< Left | Right >", 0, 0);
+          lcd.drawString("       |        ", 0, 1);
+          lcd.drawString("YELLOW | WHITE  ", 0, 2);
+          lcd.drawString("       |        ", 0, 3);
+          lcd.drawString("       |        ", 0, 4);
+  
+          buttonChoice = Button.waitForAnyPress(); // Record choice (left or right press)
+        } while (buttonChoice != Button.ID_LEFT && buttonChoice != Button.ID_RIGHT);
+        if(buttonChoice == Button.ID_LEFT) blockColor = 2;
+        else blockColor = 3;
+      }
+      lcd.clear();
+    }
     // Odometer related objects
     final Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
     OdometryCorrection odometryCorrection = new OdometryCorrection(LS_BlackLines,LS_TO_CENTER_OFFSET,GyroSensor); // TODO Complete
@@ -178,6 +196,18 @@ public class Lab5 {
     } catch (InterruptedException e) {
       // There is nothing to be done here
     }
+    
+    // if there is 30 seconds left, go directly to the exit. Stop searching for block.
+    final Thread timerThread = new Thread() {
+      public void run() {
+        try {
+          Thread.sleep(270000);             //sleep for 4.5 minutes
+          FlagDetector.SEARCHINGFORFLAGS = false;
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } 
+      }
+    };
    
     /*Quick copy-paste for debugging the robot
      * 
@@ -194,12 +224,15 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
-      LSLocalizer.Localize();
-      Button.waitForAnyPress();
-      
-      FlagDetector.goToSearchZone(searchZone, startCorner);
-      FlagDetector.blockSearch();
-      
+       if(!isInFieldTestMode) FlagDetector.findColorOfBlock(true);
+       else {
+        timerThread.start();      
+        USLocalizer.Localize();
+        LSLocalizer.Localize();
+        
+        FlagDetector.goToSearchZone(searchZone, startCorner);
+        FlagDetector.blockSearch();
+       }
        
       } 
     }).start();

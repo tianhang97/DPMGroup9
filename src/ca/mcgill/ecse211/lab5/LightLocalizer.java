@@ -103,9 +103,9 @@ public class LightLocalizer {
    * This function will rotate the robot clockwise and will stop the robot when a black line is met. 
    */
   private void stopAtNextBlackLine() {
-    Navigator.rotateRobot(10, false, true);
+    Navigation.rotateRobot(10, false, true);
     while(true) {
-      Navigator.rotateRobot(360, true, true);
+      Navigation.rotateRobot(360, true, true);
       while(Navigation.isRotating()) {
         if(LS.getColorID() == 13) {
           //When a black line is detected, stop the motors and beep.
