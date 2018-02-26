@@ -48,7 +48,15 @@ public class OdometryCorrection implements Runnable {
     this.LS = lightSensor;
     this.DISTANCE_CENTER_TO_LS = DISTANCE_CENTER_TO_LS;
     this.GyroSensor = GyroSensor;
-    this.GyroSensor.reset();
+    while(true) {
+      try{
+        this.GyroSensor = new EV3GyroSensor(LocalEV3.get().getPort("S4"));
+        continue;
+      }
+      catch (Exception e) {
+        break;
+      }
+    }
     this.GS_Sampler = this.GyroSensor.getAngleMode();
     //Set the current mode to ambient light level.
     LS.setCurrentMode(1);
@@ -74,7 +82,6 @@ public class OdometryCorrection implements Runnable {
         
         //A LINE GOT DETECTED
         if(LS.getColorID() == 13) {
-          Sound.beep();
           //Get present values
           presentT = odometer.getXYT()[2];
           presentX = odometer.getXYT()[0] + DISTANCE_CENTER_TO_LS * Math.sin(Math.toRadians(presentT));

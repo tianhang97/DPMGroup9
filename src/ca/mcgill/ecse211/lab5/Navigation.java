@@ -28,17 +28,18 @@ public class Navigation implements UltrasonicController{
   private static EV3LargeRegulatedMotor rightMotor;
   private static double wheelRadius;
   public static double track;
-  private static int FORWARDSPEED;
-  private static int ROTATIONSPEED;
+  public static int FORWARDSPEED;
+  public static int ROTATIONSPEED;
   public static double wantedTheta;
   public static double deltaX;
   public static double deltaY;
   public static int distance = 255;
   private static double[][] centerOfBoard;
   private int[] last5Distances = new int[5];
-  public static boolean navigationCorrectionEnable = true;
+  public static boolean navigationCorrectionEnable = false;
   public static boolean odometerCorrected;
   private static boolean robotIsRotating = false;
+  private double CONSTANT_FLAG_CHECKING_DISTANCE = 12;
  
   
   /**
@@ -86,7 +87,7 @@ public class Navigation implements UltrasonicController{
     //setting booleans to distinguish between the robot rotating and the robot navigating. Useful for odometry correction.
     robotIsNavigating = true;
     robotIsRotating = false;
-      
+    stopMotors(); 
     
     //Fetching constants
     double presentX = odo.getXYT()[0];
@@ -106,6 +107,7 @@ public class Navigation implements UltrasonicController{
     }
     
     //Turn robot to the desired Theta and set back the booleans.
+    
     turnTo(wantedTheta,true,false);
     robotIsNavigating = true;
     robotIsRotating = false;
@@ -145,7 +147,9 @@ public class Navigation implements UltrasonicController{
     //Booleans that determines if the robot is in rotating mode or moving forward mode.
     robotIsRotating = true;
     robotIsNavigating = false;
-        
+    
+    stopMotors();
+    
     //Go get what direction the robot is facing.
     double presentTheta = odo.getXYT()[2];
     
@@ -242,11 +246,6 @@ public class Navigation implements UltrasonicController{
     }
     Navigation.distance = distance;
     
-    //Shifts the last 5 values one place towards the left
-    for(int counter = 0; counter < 4; counter++) last5Distances[counter] = last5Distances[counter+1];
-    
-    //stores last distances in array.
-    last5Distances[4] = Navigation.distance;
   }
 
   /**
@@ -462,15 +461,23 @@ public class Navigation implements UltrasonicController{
   /**Function that navigates around the serachZone. 
    * Rotates towards the search zone every 10cm and checks the distance.
    * 
-   * @param maxDistanceToCheck Distance in cm to verify if a block is present inside the searchZone. Usually the size of the searchZone/2.
-   * @return    True if a block is detected and the robot must go check it out. False if no block has been detected.
+   * @param maxDistanceToCheck  Distance in cm to verify if a block is present inside the searchZone. Usually the size of the searchZone/2.
+   * @param searchDirection         Integer that determines in what direction that the robot must travel in. 0=+ve y, 1= +ve x, 2= -ve y, 3 = -ve x.
+   * @return                    True if a block is detected and the robot must go check it out. False if no block has been detected.
    */
-  public boolean navigateAroundSearchZone(int maxDistanceToCheck) {
-    travelTo(odo.getXYT()[0]/SQUARESIDE, (odo.getXYT()[1]+10)/SQUARESIDE);
-    turnTo(90,true,false);
+  public boolean navigateAroundSearchZone(int maxDistanceToCheck, int searchDirection) {
+    double presentX, presentY;
+    double nextX, nextY;   
+    presentX = odo.getXYT()[0]/SQUARESIDE;
+    presentY = odo.getXYT()[1]/SQUARESIDE;
+    nextX = getNextDestinationPerimeterSearch(searchDirection, presentX, presentY)[0];
+    nextY = getNextDestinationPerimeterSearch(searchDirection, presentX, presentY)[1];
+    travelTo(nextX, nextY);
+    
+    turnTo(90 * (searchDirection+1),true,false);
     
     if(distance < maxDistanceToCheck) return true;
-    turnTo(0, true, false);
+    turnTo(90*searchDirection, true, false);
     return false;
   }
   
@@ -478,20 +485,69 @@ public class Navigation implements UltrasonicController{
    * Checks the block's color is any. Advances twice, each 1cm at a time, to detect the color of the block.
    * Stops after three unsuccessful attempts of checking the color.
    * 
+   * @param maximumDetectableDistance Value of the maximum distance a robot will recognize a block in cm. Usually the searchZone's width/2.
    */
-  public void goSeeBlock() {
-    advanceRobot(distance - 9,true);    
+  public void goSeeBlock(int maximumDetectableDistance) {
+    double beginningX = odo.getXYT()[0], beginningY = odo.getXYT()[1];
+    double finalX, finalY, distanceCovered;
     
-    while(isMoving() && distance > 9) {
+    //Block Detection must happen at 9cm
+    int distanceToCheck = distance - 9;
+    advanceRobot(distanceToCheck,true);    
+    while(isMoving() && distance > 9 && distance < maximumDetectableDistance) {
       //do nothing
     }
     
-    for(int i = 0;FlagDetection.colorDetected.equals("NO COLOR") && i < 3 ; i++) {
+    //check for the color of the flag.
+    for(int i = 0;FlagDetection.colorDetected.equals("NO COLOR") && i < 4 ; i++) {
       advanceRobot(1,false);
       FlagDetection.findColorOfBlock(false);
+      if(FlagDetection.beepingSequenceWhenDetectingBlock()) break;
     }
+    //If a block is detected, back up so that when you will rotate, you won't hit the block.
+    finalX = odo.getXYT()[0];
+    finalY = odo.getXYT()[1];
+    distanceCovered = Math.sqrt(Math.pow(finalX - beginningX, 2) + Math.pow(finalY - beginningY, 2));
+    Navigation.advanceRobot(-distanceCovered, false);
     stopMotors();
     
   }
+  /**This function calculates the next coordinate that the robot will go to for measuring if a flag is present.
+   * 
+   * @param searchDirection    Integer that determines in what direction that the robot must travel in. 0=+ve y, 1= +ve x, 2= -ve y, 3 = -ve x. 
+   * @param presentX       X coordinate of robot.
+   * @param presentY       Y coordinate of robot
+   * @return               Double array of size 2 that contains the X, Y position of the next coordinate for sampling. Convention is [x,y].
+   */
+  public double[] getNextDestinationPerimeterSearch(int searchDirection, double presentX,double presentY) {
+    double[] newCoords = new double[2];
+    if(searchDirection == 0 ) { //Traveling in +ve y-direction.
+     newCoords[0] = presentX;
+     newCoords[1] = presentY + CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
+    }
+    else if(searchDirection == 1 ) { //Traveling in +ve x-direction.
+      newCoords[0] = presentX + CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
+      newCoords[1] = presentY;
+    }
+    else if(searchDirection == 2 ) { //Traveling in -ve y-direction.
+      newCoords[0] = presentX;
+      newCoords[1] = presentY - CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
+    }
+    else if(searchDirection == 3 ) { //Traveling in -ve x-direction.
+      newCoords[0] = presentX - CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
+      newCoords[1] = presentY;
+    
+
+    }
+    return newCoords;
+  }
   
+  public double getContstantFlagCheckingDistance() {
+    return CONSTANT_FLAG_CHECKING_DISTANCE/SQUARESIDE;
+  }
+  
+  public void setForwardAndRotatingSpeed(int FORWARD_SPEED, int ROTATE_SPEED) {
+    this.ROTATIONSPEED = ROTATE_SPEED;
+    this.FORWARDSPEED = FORWARD_SPEED;
+  }
 }

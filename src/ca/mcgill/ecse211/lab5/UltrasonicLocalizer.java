@@ -14,15 +14,16 @@ public class UltrasonicLocalizer{
   private Navigation Navigator = null;
   private boolean choicSelectedIsRisingEdge;
   private Odometer odo;                         // Need odometer to get present location values.
-  private int d = 45;                           //Arbiturary distance in cm at which a wall is detected.
+  private int d = 50;                           //Arbiturary distance in cm at which a wall is detected.
   private int k = 1;                            //+/- error in the d value above in cm.
 
   
   
-  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge) throws OdometerExceptions {
+  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge, int LOCALIZATION_SPEED) throws OdometerExceptions {
     this.Navigator=Navigator;
     this.choicSelectedIsRisingEdge=choiceSelectedIsRisingEdge;  
     this.odo = Odometer.getOdometer();
+    this.Navigator.setForwardAndRotatingSpeed(LOCALIZATION_SPEED, LOCALIZATION_SPEED);
   }
   
   /**
@@ -107,7 +108,7 @@ public class UltrasonicLocalizer{
      Sound.beepSequenceUp();
      
     //Rotating Robot towards the other wall 45deg so the same rising edge is not counted twice.
-    Navigator.rotateRobot(45, false, true);
+    Navigator.rotateRobot(90, false, true);
     
     //travel towards the next wall.
     Navigator.rotateRobot(720, true, true);

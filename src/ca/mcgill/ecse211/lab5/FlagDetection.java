@@ -13,16 +13,19 @@ import ca.mcgill.ecse211.odometer.OdometerExceptions;
 import lejos.hardware.Button;
 import lejos.hardware.Sound;
 import lejos.hardware.Sounds;
+import lejos.robotics.filter.MaximumFilter;
 
 public class FlagDetection implements LightSensorController{
   //Class constants
   private static Navigation Navigator;
   private static double SQUARESIDE;
   private static Odometer odo;
-  private static final double minimumDistanceToCheckBlock = 40;
   private static final int COUNTERMINIMUM = 5;
   private static final String[] FLAGCOLOR = {"RED", "BLUE", "YELLOW", "WHITE", "NO COLOR"};
   private static int colorDesired = 0;
+  public static int searchDirection = 0;
+  private static boolean correctFlagFound = false;
+  private static final double TOLERANCE_ON_BLOCK_DETECTION = 1;
   
   public static float R;
   public static float G;
@@ -72,12 +75,11 @@ public class FlagDetection implements LightSensorController{
     //Disables the ongoing correction of the OdometryCorrection.
     Navigation.navigationCorrectionEnable = false;
     double[] searchLines = new double[4];
-    double presentX, presentY;
     double deltaX=Math.abs(searchZone[0] - searchZone[2]), deltaY = Math.abs(searchZone[1] - searchZone[3]);
     
     //Determines the max distance to check in field.
-    int maxDistanceToCheckX = (int) ((deltaX+1) * SQUARESIDE)/2;
-    int maxDistanceToCheckY = (int) ((deltaY+1) * SQUARESIDE)/2;
+    int maxDistanceToCheckX = (int) ((deltaX+TOLERANCE_ON_BLOCK_DETECTION) * SQUARESIDE)/2;
+    int maxDistanceToCheckY = (int) ((deltaY+TOLERANCE_ON_BLOCK_DETECTION) * SQUARESIDE)/2;
    
     //searchLines contains the coordinates that the robot will travel along to detect block. It is purposefully
     //bigger than the searchZone.
@@ -86,36 +88,69 @@ public class FlagDetection implements LightSensorController{
     searchLines[2] = searchZone[2] + 0.5;
     searchLines[3] = searchZone[3] + 0.5;
     
-    //Travels to the beginning of the searchLines.
-    Navigator.travelTo(searchLines[0], searchLines[1]);
-    Navigator.turnTo(0, false, false);
+    for( searchDirection = 0; searchDirection < 4 && !correctFlagFound; searchDirection++) {
+      //Travelling in...
+      //... +ve y-direction.
+      if(searchDirection == 0) {
+        Navigator.travelTo(searchLines[0], searchLines[1]);
+        while(odo.getXYT()[1] < (searchZone[3]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckX,searchZone,searchLines);
+          //Stop searching if the right color is detected.
+          if(correctFlagFound) break;
+        }
+      }
+      
+      //... +ve x-direction
+      else if(searchDirection == 1) {
+        Navigator.travelTo(searchLines[0], searchLines[3]);
+        while(odo.getXYT()[0] < (searchZone[2]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckY,searchZone,searchLines);
+          
+          //Stop searching if the right color is detected.
+          if(correctFlagFound) break;
+        }
+      }
+      
+      //... -ve y-direction
+      else if(searchDirection == 2) {
+        Navigator.travelTo(searchLines[2], searchLines[3]);
+        while(odo.getXYT()[1] > (searchZone[1] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckX,searchZone,searchLines);
+          
+          //Stop searching if the right color is detected.
+          if(correctFlagFound) break;
+        }
+      }
+      
+      //... -ve x-direction
+      else {
+        Navigator.travelTo(searchLines[2], searchLines[1]);
+        while(odo.getXYT()[0] > (searchZone[0] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckY,searchZone,searchLines);
+          
+          //Stop searching if the right color is detected.
+          if(correctFlagFound) break;
+        }
+      }
     
-    //While the end of the searchZone is not reach, check for potential flags.
-    while(odo.getXYT()[1] < searchZone[3]*SQUARESIDE) {
-      while(!Navigator.navigateAroundSearchZone(maxDistanceToCheckX)) {
-        //do nothing. This function will return when a block is seen.
-      }
-      //Record the position and go see block.
-      presentX = odo.getXYT()[0]/SQUARESIDE;
-      presentY = odo.getXYT()[1]/SQUARESIDE;
-      Navigator.goSeeBlock();
-      
-      //After the block is seen and identified, come back to the position OUTSIDE the search zone.
-      Navigator.travelTo(presentX, presentY);
-      Navigator.turnTo(0, false, false);
-      
-      //Stop searching if the right color is detected.
-      if(colorDetected.equals(FLAGCOLOR[colorDesired])) {
-        return;
-      }
-      //reset the color String if the right color is not detected.
-      else colorDetected = FLAGCOLOR[4];
-      
-    } 
+    }
+    searchDirection--;
     //Reset the correction String
+    exitSearchZone(searchZone,searchLines,searchDirection);
     Navigation.navigationCorrectionEnable = true;
   }
- 
+  
+  /**This function calls the function that navigates around the side of the search zone. Also, checks to see if a block is present
+   *    * 
+   * @param searchDirection             Integer that determines in what direction that the robot must travel in. 0=+ve y, 1= +ve x, 2= -ve y, 3 = -ve x.
+   * @param maxDistanceToCheck      Maximum distance read by USsensor that the robot will react to and go check the block.
+   * @param searchZone              Coords of the search zone.
+   * @param searchLines             Coords of the perimeter searching lines.
+   */
+  private void perimeterSearchRountine(int searchDirection, int maxDistanceToCheck, double[] searchZone, double[] searchLines){
+    if(Navigator.navigateAroundSearchZone(maxDistanceToCheck, searchDirection))  Navigator.goSeeBlock(maxDistanceToCheck);
+  }
+  
   /**This function returns true if a flag is within detecting distance from the robot.
    * 
    * @param     maxDistance Maximum detecting distance as seen by the robot.
@@ -148,7 +183,6 @@ public class FlagDetection implements LightSensorController{
       //Determines if the stdError is within range for RED block
       if(errorR < stdTolerance*stdR[0] && errorG < stdTolerance*stdG[0] && errorB < stdTolerance*stdB[0]) {
         colorDetected = "RED";
-        Sound.playTone(400, 100);
         counterR++;
         
         if(counterR == colorCounterMinimum) return;
@@ -163,7 +197,6 @@ public class FlagDetection implements LightSensorController{
       //Determines if the stdError is within range for BLUE block
       if(errorR < stdTolerance*stdR[1] && errorG < stdTolerance*stdG[1] && errorB < stdTolerance*stdB[1]) {
         colorDetected = "BLUE";
-        Sound.playTone(500, 100);
         counterB++;
              
         if(counterB == colorCounterMinimum) return;
@@ -178,7 +211,6 @@ public class FlagDetection implements LightSensorController{
       //Determines if the stdError is within range for Yellow block
       if(errorR < stdTolerance*stdR[2] && errorG < stdTolerance*stdG[2] && errorB < stdTolerance*stdB[2]) {
         colorDetected = "YELLOW";
-        Sound.playTone(600, 100);
         counterY++;       
         
         if(counterY == colorCounterMinimum) return;
@@ -191,22 +223,21 @@ public class FlagDetection implements LightSensorController{
       errorB = Math.abs(B-meanB[3]);
       
       //Determines if the stdError is within range for WHITE block
-      if(errorR < stdTolerance*stdR[3] && errorG < stdTolerance*stdG[3] && errorB < stdTolerance*stdB[3]) {
-        colorDetected = "WHITE";
-        Sound.playTone(700, 100);
-        
+      if(errorR < (stdTolerance+1)*stdR[3] && errorG < (stdTolerance+1)*stdG[3] && errorB < (stdTolerance+1)*stdB[3]) {
+        colorDetected = "WHITE";       
         counterW++;
         
         if(counterW == colorCounterMinimum) return;
         continue;
       }
-      
+     
       //Reset the color back to null if no color has been detected.
       colorDetected = "NO COLOR";
       counterVoid++;
-      if(counterVoid == 3*colorCounterMinimum) return;
+      if(counterVoid == 25*colorCounterMinimum) return;
       
     }
+    
   }
   
   /**Travels to the beginning of the searchZone.
@@ -215,15 +246,47 @@ public class FlagDetection implements LightSensorController{
    */
   public void goToSearchZone(double[] searchZone) {
     Navigator.travelTo(searchZone[0], searchZone[1]);
+    Sound.beep();
   }
   
-  /**Travels to the end of the searchZone
+  /**Travels to the end of the searchZone through the appropriate path.
    * 
    * @param searchZone Array of coords of the search zone. [LLx,LLy,URx,URy]
    */
-  public void exitSearchZone (double[] searchZone) {
+  public void exitSearchZone (double[] searchZone, double[] searchLines ,int searchDirection) {
+    if(searchDirection == 0) {
+      Navigator.travelTo(searchLines[0], searchLines[3]);
+      Navigator.travelTo(searchLines[2], searchLines[3]);
+    }
+    else if (searchDirection == 1) {
+      Navigator.travelTo(searchLines[2], searchLines[3]);
+    }
+    
+    else if (searchDirection == 2) {
+      Navigator.travelTo(searchLines[2], searchLines[3]);
+    }
+    else if(searchDirection == 3) {
+      Navigator.travelTo(searchLines[2], searchLines[1]);
+      Navigator.travelTo(searchLines[2], searchLines[3]);
+    }
+    
     Navigator.travelTo(searchZone[2], searchZone[3]);
   }
   
-  
+  /**This function beeps the correct number of times when a block is detected.
+   * @return Returns true if a block of color is detected. Returns false otherwise.
+   */
+  public static boolean beepingSequenceWhenDetectingBlock() {
+    if(colorDetected.equals(FLAGCOLOR[colorDesired]))   {
+      correctFlagFound = true;
+      Sound.beep();
+      return true;
+    }
+    else if (!colorDetected.equals(FLAGCOLOR[4])) {
+      Sound.twoBeeps();
+      colorDetected = FLAGCOLOR[4];
+      return true;
+    }
+    else return false;
+  }
 }

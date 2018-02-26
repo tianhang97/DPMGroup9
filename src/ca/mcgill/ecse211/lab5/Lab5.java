@@ -36,33 +36,47 @@ public class Lab5 {
       new EV3ColorSensor(LocalEV3.get().getPort("S1"));
   private static final EV3ColorSensor LS_BlockDetection = 
       new EV3ColorSensor(LocalEV3.get().getPort("S3"));
-  private static final EV3GyroSensor GyroSensor = 
-      new EV3GyroSensor(LocalEV3.get().getPort("S4"));
+  private static EV3GyroSensor GyroSensor;
   
-  static EV3UltrasonicSensor usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
-  static SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
+  
+  static EV3UltrasonicSensor usSensor;      // usSensor is the instance
+  static SampleProvider usDistance;         // usDistance provides samples from
                                                             // this instance
-  static float[] usData = new float[usDistance.sampleSize()]; // usData is the buffer in which data are
-                                                              // returned
+  static float[] usData; 
   static float[] lsData = new float[3];
   
   //Constants that are intrinsic to the robot.
   public static final double WHEEL_RAD = 2.1;
   public static double TRACK = 11.95 ;        //This value is extremely sensitive to the hardware and the battery level. Changes slightly but frequently.
-  public static final int FORWARD_SPEED = 150;
-  public static final int ROTATE_SPEED = 120;
+  public static final int LOCALIZATION_SPEED = 120;
+  public static final int FORWARD_SPEED = 300;
+  public static final int ROTATE_SPEED = 100;
   public static final double SQUARESIDE = 30.48;
   public static final int SIZEOFBOARD = 3;
   public static final double LS_TO_CENTER_OFFSET = -14.3;
    
-  public static final double[] searchZone = {3,3,6,7}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
+  public static final double[] searchZone = {2,2,5,5}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
   public static final int startCorner = 0;
   public static int blockColor = 0; // 1=red, 2= blue, 3=yellow, 4=white
-      
+
   
   public static void main(String[] args) throws OdometerExceptions {
     int buttonChoice;
-      
+   
+    while(true) {
+      try{
+        usSensor = new EV3UltrasonicSensor(LocalEV3.get().getPort("S2")); // usSensor is the instance
+      }
+      catch (Exception e) {
+        lcd.drawString("US SENSOR ERROR PORT 2", 0, 1);
+        continue;
+      }
+      break;
+    }
+    usDistance = usSensor.getMode("Distance");                        // usDistance provides samples from
+                                                                      // this instance
+    usData = new float[usDistance.sampleSize()];                    // usData is the buffer in which data are returned
+    
     // Setup Ultrasonic Poller // This thread samples the US and invokes
     UltrasonicPoller usPoller = null; // the selected controller on each cycle
 
@@ -119,6 +133,7 @@ public class Lab5 {
       if(buttonChoice == Button.ID_LEFT) blockColor = 2;
       else blockColor = 3;
     }
+    lcd.clear();
     
     // Odometer related objects
     final Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD); // TODO Complete implementation
@@ -142,8 +157,8 @@ public class Lab5 {
 
     
     //Create ultrasonic and light localizer objects.
-    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator, false);
-    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE);
+    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator, false, LOCALIZATION_SPEED);
+    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE, LOCALIZATION_SPEED, FORWARD_SPEED, ROTATE_SPEED);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     
@@ -179,9 +194,14 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
+       USLocalizer.Localize();
+       LSLocalizer.Localize();
         
-        Navigator.rotateRobot(360, true, true);
         
+      FlagDetector.goToSearchZone(searchZone);
+      FlagDetector.blockSearch(searchZone);
+      
+       
       } 
     }).start();
     

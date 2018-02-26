@@ -21,15 +21,18 @@ public class LightLocalizer {
   private Odometer odo;
   private static double SQUARESIDE;
   public static double tXminus, tXplus, tYminus, tYplus,deltaTy,deltaTx; //Variables that will record at what theta each lines were crossed at.
+  private static int FORWARD_SPEED, ROTATE_SPEED;
   
-  
-  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE) throws OdometerExceptions {
+  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE, int LOCALIZATION_SPEED, int forwardSpeed, int rotateSpeed) throws OdometerExceptions {
     this.Navigator = Navigator;
     this.LS = lightSensor;
     this.odo = Odometer.getOdometer();
     this.wheelRadius = wheelRadius;
     this.LS_OFFSET = LS_TO_CENTER_OFFSET;
     this.SQUARESIDE = SQUARESIZE;
+    this.Navigator.setForwardAndRotatingSpeed(LOCALIZATION_SPEED, LOCALIZATION_SPEED);
+    this.FORWARD_SPEED = forwardSpeed;
+    this.ROTATE_SPEED = rotateSpeed;
   }
   /**
    * This function localizes the robot using the black lines. Assumes the robot is in the bottom left square. Also, assumes that a full rotation will
@@ -81,6 +84,9 @@ public class LightLocalizer {
     odo.setXYT(SQUARESIDE, SQUARESIDE, odo.getXYT()[2]);
     OdometryCorrection.startCorrection = true;
     OdometryCorrection.resetGyroSampler();
+    
+    //Update the running speeds in Navigation
+    Navigator.setForwardAndRotatingSpeed(FORWARD_SPEED, ROTATE_SPEED);
   }
   /**
    * This function will rotate the robot clockwise and will stop the robot when a black line is met. 

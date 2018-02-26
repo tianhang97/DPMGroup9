@@ -68,7 +68,7 @@ public class Display implements Runnable {
       lcd.drawString("G: "+ FlagDetection.G+"    ", 0, 4);
       lcd.drawString("GyroT: "+ OdometryCorrection.gyroSample[0]+"     ", 0, 5);
       lcd.drawString("Distance:" + Navigation.distance+"      ", 0, 6);
-      lcd.drawString("color:" + FlagDetection.colorDetected+"         ", 0, 7);
+      lcd.drawString("ColorDetected:" + FlagDetection.colorDetected+"         ", 0, 7);
    
       
       // this ensures that the data is updated only once every period
