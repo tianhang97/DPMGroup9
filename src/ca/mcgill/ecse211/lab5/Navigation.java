@@ -493,7 +493,7 @@ public class Navigation implements UltrasonicController{
     
     //Block Detection must happen at 9cm
     int distanceToCheck = distance - 9;
-    advanceRobot(distanceToCheck,true);    
+    advanceRobot(1.5*distanceToCheck,true);    
     while(isMoving() && distance > 9 && distance < maximumDetectableDistance) {
       //do nothing
     }

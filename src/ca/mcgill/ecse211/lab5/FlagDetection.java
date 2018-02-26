@@ -26,6 +26,8 @@ public class FlagDetection implements LightSensorController{
   public static int searchDirection = 0;
   private static boolean correctFlagFound = false;
   private static final double TOLERANCE_ON_BLOCK_DETECTION = 1;
+  private static int startCorner;
+  private static double[] searchLines, searchZone;
   
   public static float R;
   public static float G;
@@ -49,11 +51,21 @@ public class FlagDetection implements LightSensorController{
    * @param blockColor  The desired flag color.
    * @throws OdometerExceptions
    */
-  public FlagDetection(Navigation Navigator, double SQUARESIDE, int blockColor) throws OdometerExceptions {
+  public FlagDetection(Navigation Navigator, double SQUARESIDE, int blockColor, int startCorner, double[] searchZone) throws OdometerExceptions {
     this.Navigator = Navigator;
     this.SQUARESIDE = SQUARESIDE;
     this.odo = Odometer.getOdometer();
     this.colorDesired = blockColor;
+    this.startCorner = startCorner;
+    this.searchZone = searchZone;
+    
+    //searchLines contains the coordinates that the robot will travel along to detect block. It is purposefully
+    //bigger than the searchZone.
+    this.searchLines = new double[4];
+    searchLines[0] = searchZone[0] - 0.5;
+    searchLines[1] = searchZone[1] - 0.5;
+    searchLines[2] = searchZone[2] + 0.5;
+    searchLines[3] = searchZone[3] + 0.5;
   }
   /**Takes in the data of the frontal light sensor.
    * @param colorValues Array of {R,G,B} obtained from EV3ColorSensor
@@ -71,22 +83,15 @@ public class FlagDetection implements LightSensorController{
    * 
    * @param searchZone Coordinates of the searchZone. [LLx,LLy,URx,URy]
    */
-  public void blockSearch(double[] searchZone) {
+  public void blockSearch() {
     //Disables the ongoing correction of the OdometryCorrection.
     Navigation.navigationCorrectionEnable = false;
-    double[] searchLines = new double[4];
     double deltaX=Math.abs(searchZone[0] - searchZone[2]), deltaY = Math.abs(searchZone[1] - searchZone[3]);
     
     //Determines the max distance to check in field.
     int maxDistanceToCheckX = (int) ((deltaX+TOLERANCE_ON_BLOCK_DETECTION) * SQUARESIDE)/2;
     int maxDistanceToCheckY = (int) ((deltaY+TOLERANCE_ON_BLOCK_DETECTION) * SQUARESIDE)/2;
    
-    //searchLines contains the coordinates that the robot will travel along to detect block. It is purposefully
-    //bigger than the searchZone.
-    searchLines[0] = searchZone[0] - 0.5;
-    searchLines[1] = searchZone[1] - 0.5;
-    searchLines[2] = searchZone[2] + 0.5;
-    searchLines[3] = searchZone[3] + 0.5;
     
     for( searchDirection = 0; searchDirection < 4 && !correctFlagFound; searchDirection++) {
       //Travelling in...
@@ -94,7 +99,7 @@ public class FlagDetection implements LightSensorController{
       if(searchDirection == 0) {
         Navigator.travelTo(searchLines[0], searchLines[1]);
         while(odo.getXYT()[1] < (searchZone[3]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
-          perimeterSearchRountine(searchDirection,maxDistanceToCheckX,searchZone,searchLines);
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckX);
           //Stop searching if the right color is detected.
           if(correctFlagFound) break;
         }
@@ -104,7 +109,7 @@ public class FlagDetection implements LightSensorController{
       else if(searchDirection == 1) {
         Navigator.travelTo(searchLines[0], searchLines[3]);
         while(odo.getXYT()[0] < (searchZone[2]- Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
-          perimeterSearchRountine(searchDirection,maxDistanceToCheckY,searchZone,searchLines);
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckY);
           
           //Stop searching if the right color is detected.
           if(correctFlagFound) break;
@@ -115,7 +120,7 @@ public class FlagDetection implements LightSensorController{
       else if(searchDirection == 2) {
         Navigator.travelTo(searchLines[2], searchLines[3]);
         while(odo.getXYT()[1] > (searchZone[1] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
-          perimeterSearchRountine(searchDirection,maxDistanceToCheckX,searchZone,searchLines);
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckX);
           
           //Stop searching if the right color is detected.
           if(correctFlagFound) break;
@@ -126,7 +131,7 @@ public class FlagDetection implements LightSensorController{
       else {
         Navigator.travelTo(searchLines[2], searchLines[1]);
         while(odo.getXYT()[0] > (searchZone[0] + Navigator.getContstantFlagCheckingDistance()) * SQUARESIDE) {
-          perimeterSearchRountine(searchDirection,maxDistanceToCheckY,searchZone,searchLines);
+          perimeterSearchRountine(searchDirection,maxDistanceToCheckY);
           
           //Stop searching if the right color is detected.
           if(correctFlagFound) break;
@@ -144,10 +149,8 @@ public class FlagDetection implements LightSensorController{
    *    * 
    * @param searchDirection             Integer that determines in what direction that the robot must travel in. 0=+ve y, 1= +ve x, 2= -ve y, 3 = -ve x.
    * @param maxDistanceToCheck      Maximum distance read by USsensor that the robot will react to and go check the block.
-   * @param searchZone              Coords of the search zone.
-   * @param searchLines             Coords of the perimeter searching lines.
    */
-  private void perimeterSearchRountine(int searchDirection, int maxDistanceToCheck, double[] searchZone, double[] searchLines){
+  private void perimeterSearchRountine(int searchDirection, int maxDistanceToCheck){
     if(Navigator.navigateAroundSearchZone(maxDistanceToCheck, searchDirection))  Navigator.goSeeBlock(maxDistanceToCheck);
   }
   
@@ -244,7 +247,9 @@ public class FlagDetection implements LightSensorController{
    * 
    * @param searchZone  Array of coords of the search zone. [LLx,LLy,URx,URy]
    */
-  public void goToSearchZone(double[] searchZone) {
+  public void goToSearchZone(double[] searchZone, int startCorner) {
+    if(startCorner == 1 || startCorner == 2)    Navigator.travelTo(searchLines[2], searchLines[1]);
+    
     Navigator.travelTo(searchZone[0], searchZone[1]);
     Sound.beep();
   }

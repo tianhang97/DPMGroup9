@@ -5,6 +5,7 @@
 
 package ca.mcgill.ecse211.lab5;
 
+import java.sql.SQLInvalidAuthorizationSpecException;
 import ca.mcgill.ecse211.odometer.Odometer;
 import ca.mcgill.ecse211.odometer.OdometryCorrection;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
@@ -22,17 +23,20 @@ public class LightLocalizer {
   private static double SQUARESIDE;
   public static double tXminus, tXplus, tYminus, tYplus,deltaTy,deltaTx; //Variables that will record at what theta each lines were crossed at.
   private static int FORWARD_SPEED, ROTATE_SPEED;
+  private static int startCorner;
+  private static int sizeOfBoard;
   
-  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE, int LOCALIZATION_SPEED, int forwardSpeed, int rotateSpeed) throws OdometerExceptions {
+  public LightLocalizer(Navigation Navigator, EV3ColorSensor lightSensor, double wheelRadius, double LS_TO_CENTER_OFFSET, double SQUARESIZE, int LOCALIZATION_SPEED, int forwardSpeed, int rotateSpeed, int startCorner, int SIZEOFBOARD) throws OdometerExceptions {
     this.Navigator = Navigator;
     this.LS = lightSensor;
     this.odo = Odometer.getOdometer();
     this.wheelRadius = wheelRadius;
     this.LS_OFFSET = LS_TO_CENTER_OFFSET;
     this.SQUARESIDE = SQUARESIZE;
-    this.Navigator.setForwardAndRotatingSpeed(LOCALIZATION_SPEED, LOCALIZATION_SPEED);
     this.FORWARD_SPEED = forwardSpeed;
     this.ROTATE_SPEED = rotateSpeed;
+    this.startCorner = startCorner;
+    this.sizeOfBoard = SIZEOFBOARD;
   }
   /**
    * This function localizes the robot using the black lines. Assumes the robot is in the bottom left square. Also, assumes that a full rotation will
@@ -40,7 +44,10 @@ public class LightLocalizer {
    */
   
   public void Localize() {
+    int multiplierX = 0, multiplierY=0;
+    
     OdometryCorrection.startCorrection = false;
+    this.Navigator.setForwardAndRotatingSpeed(FORWARD_SPEED, ROTATE_SPEED);
     
     //With the robot's position guaranteed to produce a 4 rotation with the LS crossing 4 lines, we can continue.
     //Now we fully rotate 360 and record when each of the black lines were crossed.
@@ -72,18 +79,22 @@ public class LightLocalizer {
     if(deltaTx <0) deltaTx +=360;
     if(deltaTy <0) deltaTy +=360;
     
-    odo.setX(-Math.abs(LS_OFFSET * Math.cos(deltaTy*Math.PI/360)));
-    odo.setY(-Math.abs(LS_OFFSET * Math.cos(deltaTx*Math.PI/360)));
+    if(startCorner == 1) multiplierX = sizeOfBoard - 1;
+    else if (startCorner ==2 ) {
+      multiplierX = multiplierY = sizeOfBoard - 1;
+    }
+    else if (startCorner == 3) multiplierY = sizeOfBoard - 1;
+    
+    odo.setX(-Math.abs(LS_OFFSET * Math.cos(deltaTy*Math.PI/360)) + (multiplierX + 1) * SQUARESIDE);
+    odo.setY(-Math.abs(LS_OFFSET * Math.cos(deltaTx*Math.PI/360)) + (multiplierY  + 1) * SQUARESIDE);
     
     odo.setTheta(273.5+deltaTy/2);      //Theoretically 270. In practice it is 274 .          
     
-    //When this is done, travel to the origin and turn to Theta=0.
-    Navigator.travelTo(0, 0);
+    Navigator.travelTo(multiplierX+1, multiplierY +1);
     Navigator.turnTo(0, false, false);
-    
-    odo.setXYT(SQUARESIDE, SQUARESIDE, odo.getXYT()[2]);
+    odo.setTheta(-90 * startCorner);
     OdometryCorrection.startCorrection = true;
-    OdometryCorrection.resetGyroSampler();
+    OdometryCorrection.resetGyroSampler((float)odo.getXYT()[2]);
     
     //Update the running speeds in Navigation
     Navigator.setForwardAndRotatingSpeed(FORWARD_SPEED, ROTATE_SPEED);

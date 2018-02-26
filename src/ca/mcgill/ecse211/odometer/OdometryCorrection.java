@@ -33,6 +33,7 @@ public class OdometryCorrection implements Runnable {
   private static SampleProvider GS_Sampler;
   public static float[] gyroSample = new float[1];
   public static boolean startCorrection = true;
+  public static float gyroOffSet;
   
 
 
@@ -79,6 +80,7 @@ public class OdometryCorrection implements Runnable {
       if(Navigation.isNavigating() && startCorrection) {
         correctionStart = System.currentTimeMillis();
         GS_Sampler.fetchSample(gyroSample, 0);
+        gyroSample[0] -= gyroOffSet;
         
         //A LINE GOT DETECTED
         if(LS.getColorID() == 13) {
@@ -136,7 +138,8 @@ public class OdometryCorrection implements Runnable {
    * ROBOT MUST BE STILL DURING THIS OPERATION.
    * 
    */
-  public static void resetGyroSampler() {
+  public static void resetGyroSampler(float offsetTheta) {
+    gyroOffSet = offsetTheta;
     GyroSensor.reset();
     GS_Sampler = GyroSensor.getAngleMode();
     

@@ -16,20 +16,22 @@ public class UltrasonicLocalizer{
   private Odometer odo;                         // Need odometer to get present location values.
   private int d = 50;                           //Arbiturary distance in cm at which a wall is detected.
   private int k = 1;                            //+/- error in the d value above in cm.
-
+  private static int FORWARD_SPEED, ROTATE_SPEED;
   
   
-  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge, int LOCALIZATION_SPEED) throws OdometerExceptions {
+  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge, int LOCALIZATION_SPEED, int FORWARD_SPEED, int ROTATE_SPEED) throws OdometerExceptions {
     this.Navigator=Navigator;
     this.choicSelectedIsRisingEdge=choiceSelectedIsRisingEdge;  
     this.odo = Odometer.getOdometer();
-    this.Navigator.setForwardAndRotatingSpeed(LOCALIZATION_SPEED, LOCALIZATION_SPEED);
+    this.FORWARD_SPEED = FORWARD_SPEED;
+    this.ROTATE_SPEED = ROTATE_SPEED;
   }
   
   /**
    * This function localizes the robot with either the rising or falling edge, as selected on the EV3.
    */
   public void Localize() {
+    this.Navigator.setForwardAndRotatingSpeed(FORWARD_SPEED, ROTATE_SPEED);
     if(choicSelectedIsRisingEdge) LocalizeWithRisingEdge();
     else LocalizeWithFallingEdge();
   }

@@ -52,11 +52,11 @@ public class Lab5 {
   public static final int FORWARD_SPEED = 300;
   public static final int ROTATE_SPEED = 100;
   public static final double SQUARESIDE = 30.48;
-  public static final int SIZEOFBOARD = 3;
+  public static final int SIZEOFBOARD = 7;
   public static final double LS_TO_CENTER_OFFSET = -14.3;
    
   public static final double[] searchZone = {2,2,5,5}; // convention is {LL_X, LL_Y, UR_X, UR_Y}
-  public static final int startCorner = 0;
+  public static final int startCorner = 2;
   public static int blockColor = 0; // 1=red, 2= blue, 3=yellow, 4=white
 
   
@@ -157,13 +157,13 @@ public class Lab5 {
 
     
     //Create ultrasonic and light localizer objects.
-    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator, false, LOCALIZATION_SPEED);
-    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE, LOCALIZATION_SPEED, FORWARD_SPEED, ROTATE_SPEED);
+    final UltrasonicLocalizer USLocalizer = new UltrasonicLocalizer(Navigator, false, LOCALIZATION_SPEED, FORWARD_SPEED, ROTATE_SPEED);
+    final LightLocalizer LSLocalizer = new LightLocalizer(Navigator,LS_BlackLines, WHEEL_RAD,LS_TO_CENTER_OFFSET,SQUARESIDE, LOCALIZATION_SPEED, FORWARD_SPEED, ROTATE_SPEED,startCorner, SIZEOFBOARD);
     usPoller = new UltrasonicPoller(usDistance, usData,Navigator);; // the selected controller on each cycle
     usPoller.start();
     
     //Create lightsensor poller
-    final FlagDetection FlagDetector = new FlagDetection(Navigator, SQUARESIDE, blockColor);
+    final FlagDetection FlagDetector = new FlagDetection(Navigator, SQUARESIDE, blockColor, startCorner,searchZone);
     lsPoller = new LightSensorPoller(LS_BlockDetection,lsData,FlagDetector);
     lsPoller.start();
     //Set odometer to xyt = (0,0,0)
@@ -194,12 +194,11 @@ public class Lab5 {
     // spawn a new Thread to avoid SquareDriver.drive() from blocking
     (new Thread() {
       public void run() {
-       USLocalizer.Localize();
-       LSLocalizer.Localize();
-        
-        
-      FlagDetector.goToSearchZone(searchZone);
-      FlagDetector.blockSearch(searchZone);
+      LSLocalizer.Localize();
+      Button.waitForAnyPress();
+      
+      FlagDetector.goToSearchZone(searchZone, startCorner);
+      FlagDetector.blockSearch();
       
        
       } 
