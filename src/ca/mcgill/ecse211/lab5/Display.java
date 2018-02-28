@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 import ca.mcgill.ecse211.odometer.Odometer;
 import ca.mcgill.ecse211.odometer.OdometerExceptions;
 import ca.mcgill.ecse211.odometer.OdometryCorrection;
+import lejos.hardware.Button;
 import lejos.hardware.lcd.TextLCD;
 
 /**
@@ -50,23 +51,35 @@ public class Display implements Runnable {
     long updateStart, updateEnd;
 
     long tStart = System.currentTimeMillis();
+    
+    
     do {
       updateStart = System.currentTimeMillis();
 
       // Retrieve x, y and Theta information
       position = odo.getXYT();
       
-      // Print x,y, and theta information
-      DecimalFormat numberFormat = new DecimalFormat("######0.00");
-      lcd.drawString("X: " + numberFormat.format(position[0]), 0, 0);
-      lcd.drawString("Y: " + numberFormat.format(position[1]), 0, 1);
-      lcd.drawString("T: " + numberFormat.format(position[2]), 0, 2);
-      
-      //Debugging only
-      lcd.drawString("R: "+ FlagDetection.R+"       ", 0, 3);
-      lcd.drawString("G: "+ FlagDetection.G+"    ", 0, 4);
-      lcd.drawString("B: "+ FlagDetection.B+"     ", 0, 5);
-      lcd.drawString("Distance:" + Navigation.distance+"      ", 0, 6);
+      // If wanting only the color to display, do so
+      if(!Lab5.isInFieldTestMode) {
+        if(!FlagDetection.colorDetected.equals("NO COLOR")) {
+          lcd.drawString("ObjectDetected", 0, 0);
+          lcd.drawString(FlagDetection.colorDetected + "       ", 0, 1);
+        }
+        else lcd.clear();
+      }
+      //Normal debugging display
+      else {
+        // Print x,y, and theta information
+        DecimalFormat numberFormat = new DecimalFormat("######0.00");
+        lcd.drawString("X: " + numberFormat.format(position[0]), 0, 0);
+        lcd.drawString("Y: " + numberFormat.format(position[1]), 0, 1);
+        lcd.drawString("T: " + numberFormat.format(position[2]), 0, 2);
+        
+        //Debugging only
+        lcd.drawString("GyroT: "+ OdometryCorrection.gyroSample[0]+"     ", 0, 5);
+        lcd.drawString("Distance:" + Navigation.distance+"      ", 0, 6);
+        lcd.drawString("ColorDetected:" + FlagDetection.colorDetected+"         ", 0, 7);
+      }
       
       // this ensures that the data is updated only once every period
       updateEnd = System.currentTimeMillis();

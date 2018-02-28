@@ -198,10 +198,13 @@ public class OdometerData {
    * @param theta the value of theta
    */
   public void setTheta(double theta) {
+    double correctedTheta = theta;
     lock.lock();
     isReseting = true;
     try {
-      this.theta = theta;
+      while(correctedTheta < 0) correctedTheta += 360;
+      correctedTheta %= 360;
+      this.theta = correctedTheta;
       isReseting = false; // Done reseting
       doneReseting.signalAll(); // Let the other threads know that you are
                                 // done reseting

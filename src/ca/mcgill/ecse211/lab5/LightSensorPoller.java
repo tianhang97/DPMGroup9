@@ -1,15 +1,15 @@
+/**Class that samples the LightSensor. Polls the RGB Values and return their respective intensities. 
+ * @author Shawn Vosburg
+ * 
+ * February 25th, 2018
+ * 
+ */
 package ca.mcgill.ecse211.lab5;
 
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.robotics.SampleProvider;
 
-/**
- * Control of the wall follower is applied periodically by the UltrasonicPoller thread. The while
- * loop at the bottom executes in a loop. Assuming that the us.fetchSample, and cont.processUSData
- * methods operate in about 20mS, and that the thread sleeps for 50 mS at the end of each loop, then
- * one cycle through the loop is approximately 70 mS. This corresponds to a sampling rate of 1/70mS
- * or about 14 Hz.
- */
+
 public class LightSensorPoller extends Thread {
   private EV3ColorSensor ls;
   private LightSensorController cont;

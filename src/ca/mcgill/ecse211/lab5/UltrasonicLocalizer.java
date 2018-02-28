@@ -14,21 +14,24 @@ public class UltrasonicLocalizer{
   private Navigation Navigator = null;
   private boolean choicSelectedIsRisingEdge;
   private Odometer odo;                         // Need odometer to get present location values.
-  private int d = 45;                           //Arbiturary distance in cm at which a wall is detected.
+  private int d = 50;                           //Arbiturary distance in cm at which a wall is detected.
   private int k = 1;                            //+/- error in the d value above in cm.
-
+  private static int FORWARD_SPEED, ROTATE_SPEED;
   
   
-  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge) throws OdometerExceptions {
+  public UltrasonicLocalizer(Navigation Navigator, boolean choiceSelectedIsRisingEdge, int LOCALIZATION_SPEED, int FORWARD_SPEED, int ROTATE_SPEED) throws OdometerExceptions {
     this.Navigator=Navigator;
     this.choicSelectedIsRisingEdge=choiceSelectedIsRisingEdge;  
     this.odo = Odometer.getOdometer();
+    this.FORWARD_SPEED = FORWARD_SPEED;
+    this.ROTATE_SPEED = ROTATE_SPEED;
   }
   
   /**
    * This function localizes the robot with either the rising or falling edge, as selected on the EV3.
    */
   public void Localize() {
+    this.Navigator.setForwardAndRotatingSpeed(FORWARD_SPEED, ROTATE_SPEED);
     if(choicSelectedIsRisingEdge) LocalizeWithRisingEdge();
     else LocalizeWithFallingEdge();
   }
@@ -49,7 +52,6 @@ public class UltrasonicLocalizer{
       
     }
     
-    Sound.buzz();
     //Check to see when there is a rising edge.
     while(Navigator.readUSDistance() < d+k) {
       
@@ -96,7 +98,6 @@ public class UltrasonicLocalizer{
       
     }
     
-    Sound.buzz();
     //Check to see when there is a rising edge.
     while(Navigator.readUSDistance() > d-k) {
       
@@ -109,7 +110,7 @@ public class UltrasonicLocalizer{
      Sound.beepSequenceUp();
      
     //Rotating Robot towards the other wall 45deg so the same rising edge is not counted twice.
-    Navigator.rotateRobot(45, false, true);
+    Navigator.rotateRobot(90, false, true);
     
     //travel towards the next wall.
     Navigator.rotateRobot(720, true, true);

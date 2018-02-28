@@ -24,7 +24,7 @@ public class Odometer extends OdometerData implements Runnable {
   private EV3LargeRegulatedMotor leftMotor;
   private EV3LargeRegulatedMotor rightMotor;
 
-  private static final double TRACK = Lab5.TRACK;
+  public static double TRACK = Lab5.TRACK;
   private final double WHEEL_RAD;
 
   private double[] position;
@@ -34,7 +34,7 @@ public class Odometer extends OdometerData implements Runnable {
 
 
   private static final long ODOMETER_PERIOD = 25; // odometer update period in ms
-  private static final double ROTATION_RADIUS = TRACK/2; //the radius of rotation of our robot in cm
+  public static double ROTATION_RADIUS = TRACK/2; //the radius of rotation of our robot in cm
   /**
    * This is the default constructor of this class. It initiates all motors and variables once.It
    * cannot be accessed externally.
